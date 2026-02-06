@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OpenMax AI</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- CSS Variables --- */
+        :root {
+            /* Dark Mode (Default) */
+            --bg-body: #09090b;
+            --bg-card: #18181b;
+            --text-main: #ffffff;
+            --text-sub: #a1a1aa;
+            --accent: #3b82f6;
+            --border: rgba(255,255,255,0.1);
+            --input-bg: #27272a;
+            --msg-user: #3f3f46;
+            --msg-ai: transparent;
+            --header-blur: rgba(9, 9, 11, 0.85);
+            --menu-bg: #1f1f22;
+            --danger: #ef4444;
+            --sidebar-overlay: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Light Mode */
+        body.light-mode {
+            --bg-body: #ffffff;
+            --bg-card: #f4f4f5;
+            --text-main: #18181b;
+            --text-sub: #71717a;
+            --accent: #2563eb;
+            --border: rgba(0,0,0,0.1);
+            --input-bg: #f4f4f5;
+            --msg-user: #e4e4e7;
+            --msg-ai: transparent;
+            --header-blur: rgba(255, 255, 255, 0.85);
+            --menu-bg: #ffffff;
+            --sidebar-overlay: rgba(0, 0, 0, 0.3);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--sidebar-overlay);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.22s ease, visibility 0.22s ease;
+            z-index: 100;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: min(84vw, 300px);
+            background: var(--menu-bg);
+            border-right: 1px solid var(--border);
+            transform: translateX(-102%);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 110;
+            display: flex;
+            flex-direction: column;
+            padding: calc(16px + env(safe-area-inset-top)) 14px 18px 14px;
+        }
+
+        body.sidebar-open .sidebar {
+            transform: translateX(0);
+        }
+
+        body.sidebar-open .sidebar-overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            padding: 8px 8px 14px 8px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            width: 100%;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-main);
+            border-radius: 12px;
+            padding: 12px 10px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .nav-item i {
+            width: 20px;
+            color: var(--text-sub);
+            margin-right: 8px;
+        }
+
+        .nav-item span {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .nav-item.active {
+            background: var(--bg-card);
+            border-color: var(--border);
+        }
+
+        .nav-item:active {
+            transform: scale(0.99);
+        }
+
+        .todo-tag {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            padding: 4px 7px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--accent);
+            background: color-mix(in srgb, var(--accent) 14%, transparent);
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+
+        .logout-btn {
+            width: 100%;
+            border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
+            background: color-mix(in srgb, var(--danger) 12%, transparent);
+            color: #fff;
+            border-radius: 12px;
+            padding: 12px 10px;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .logout-btn i {
+            color: #fecaca;
+        }
+
+        .logout-btn:active {
+            transform: scale(0.99);
+        }
+
+        /* --- Header --- */
+        header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+            background: var(--header-blur);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 50;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .brand { font-weight: 600; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+
+        .header-right { display: flex; align-items: center; gap: 15px; }
+
+        .icon-btn {
+            font-size: 20px;
+            color: var(--text-main);
+            cursor: pointer;
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .icon-btn:active { background: var(--border); }
+
+        /* --- Chat Area --- */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 70px 16px 140px 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        .hero.hidden { display: none; }
+
+        .logo-orb {
+            width: 60px; height: 60px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: 50%;
+            margin-bottom: 20px;
+            box-shadow: 0 0 25px var(--accent);
+        }
+
+        /* Messages */
+        .message { margin-bottom: 20px; max-width: 88%; line-height: 1.5; font-size: 15px; animation: slideUp 0.3s ease; }
+        .message.user { align-self: flex-end; background: var(--msg-user); color: var(--text-main); padding: 10px 16px; border-radius: 20px 20px 4px 20px; }
+        .message.ai { align-self: flex-start; background: var(--msg-ai); padding: 0; color: var(--text-main); }
+        .message img { max-width: 100%; border-radius: 12px; margin-top: 8px; display: block; }
+        .file-attachment {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; font-size: 13px;
+        }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Input Area --- */
+        .input-wrapper {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--bg-body);
+            z-index: 60;
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Preview Area (for attached files) */
+        .preview-area {
+            display: none;
+            padding: 10px 16px 0 16px;
+            gap: 10px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+        .preview-area.active { display: flex; }
+
+        .preview-item {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .preview-item img { width: 30px; height: 30px; object-fit: cover; border-radius: 4px; }
+        .remove-preview {
+            background: rgba(0,0,0,0.5); border-radius: 50%; width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 10px; cursor: pointer;
+            margin-left: 8px;
+        }
+
+        /* The Bar Itself */
+        .input-bar {
+            padding: 10px 12px 20px 12px;
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            position: relative;
+        }
+
+        .btn-circle {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            flex-shrink: 0;
+            color: var(--text-main);
+            background: transparent;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .btn-circle:active { background: var(--input-bg); transform: scale(0.95); }
+
+        /* Attachment Menu (Popup) */
+        .attach-menu {
+            position: absolute;
+            bottom: 70px; left: 16px;
+            background: var(--menu-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 8px;
+            display: flex; flex-direction: column; gap: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            opacity: 0; visibility: hidden; transform: translateY(10px) scale(0.95);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .attach-menu.open { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+
+        .menu-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+        .menu-item:active { background: var(--bg-card); }
+
+        .text-field {
+            flex: 1;
+            background: var(--input-bg);
+            border-radius: 24px;
+            padding: 12px 16px;
+            font-size: 16px;
+            color: var(--text-main);
+            border: 1px solid transparent;
+            max-height: 120px;
+            overflow-y: auto;
+            resize: none;
+            font-family: inherit;
+        }
+        .text-field:focus { outline: none; border-color: var(--border); }
+
+        /* Action Button (Mic/Send) */
+        .action-btn {
+            background: var(--text-main);
+            color: var(--bg-body);
+        }
+        .action-btn.recording {
+            background: var(--danger);
+            color: white;
+            animation: pulse-red 1.5s infinite;
+        }
+
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        /* --- Full Screen Voice Overlay --- */
+        .voice-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-body); z-index: 150;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .voice-overlay.active { opacity: 1; pointer-events: auto; }
+        .voice-visualizer { width: 100px; height: 100px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 40px var(--accent); animation: breathe 3s infinite; }
+        @keyframes breathe { 0%,100%{transform:scale(1);} 50%{transform:scale(1.1);} }
+    </style>
+</head>
+<body class="">
+
+    <!-- Hidden File Inputs -->
+    <input type="file" id="file-upload" style="display: none;">
+    <input type="file" id="image-upload" accept="image/*" style="display: none;">
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-cube" style="color: var(--accent);"></i>
+            OpenMax
+        </div>
+        <nav class="sidebar-nav">
+            <button class="nav-item active" type="button">
+                <span><i class="fas fa-layer-group"></i>Skills</span>
+            </button>
+            <button class="nav-item" type="button">
+                <span><i class="fas fa-list-check"></i>Execution List</span>
+                <span class="todo-tag">TODO</span>
+            </button>
+            <button class="nav-item" type="button">
+                <span><i class="fas fa-gear"></i>Settings</span>
+            </button>
+            <button class="nav-item" type="button">
+                <span><i class="fas fa-sliders"></i>Costumization</span>
+            </button>
+            <button class="nav-item" type="button">
+                <span><i class="fas fa-user"></i>Profile</span>
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="logout-btn" id="logout-btn" type="button">
+                <i class="fas fa-right-from-bracket"></i>
+                Logout
+            </button>
+        </div>
+    </aside>
+
+    <header>
+        <div class="header-left">
+            <div class="icon-btn" id="menu-trigger"><i class="fas fa-bars"></i></div>
+            <div class="brand">OpenMax</div>
+        </div>
+        <div class="header-right">
+             <div class="icon-btn" id="theme-btn"><i class="fas fa-sun"></i></div>
+             <div class="icon-btn" id="voice-mode-trigger"><i class="fas fa-headphones"></i></div>
+        </div>
+    </header>
+
+    <div class="content-area" id="chat-feed">
+        <div class="hero" id="hero">
+            <div class="logo-orb"></div>
+            <h3>How can I help?</h3>
+        </div>
+        <!-- Messages go here -->
+    </div>
+
+    <!-- Attachment Menu Pop-up -->
+    <div class="attach-menu" id="attach-menu">
+        <div class="menu-item" onclick="triggerUpload('image')">
+            <i class="fas fa-image" style="color: #4ade80;"></i> Photos
+        </div>
+        <div class="menu-item" onclick="triggerUpload('file')">
+            <i class="fas fa-paperclip" style="color: #f472b6;"></i> Document
+        </div>
+    </div>
+
+    <div class="input-wrapper">
+        <!-- Preview Area -->
+        <div class="preview-area" id="preview-area">
+            <!-- Dynamic items will be added here -->
+        </div>
+
+        <div class="input-bar">
+            <div class="btn-circle" id="plus-btn">
+                <i class="fas fa-plus"></i>
+            </div>
+
+            <textarea class="text-field" id="user-input" rows="1" placeholder="Message..."></textarea>
+
+            <div class="btn-circle action-btn" id="action-btn">
+                <i class="fas fa-microphone"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Mode Overlay -->
+    <div class="voice-overlay" id="voice-overlay">
+        <div class="voice-visualizer"><i class="fas fa-microphone" style="color:white; font-size: 30px;"></i></div>
+        <div style="margin-top: 30px; color: var(--text-sub);">Listening... Tap to close</div>
+    </div>
+
+    <script>
+        // --- Elements ---
+        const input = document.getElementById('user-input');
+        const actionBtn = document.getElementById('action-btn');
+        const plusBtn = document.getElementById('plus-btn');
+        const attachMenu = document.getElementById('attach-menu');
+        const chatFeed = document.getElementById('chat-feed');
+        const previewArea = document.getElementById('preview-area');
+        const fileInput = document.getElementById('file-upload');
+        const imgInput = document.getElementById('image-upload');
+
+        let isRecording = false;
+        let attachedFiles = [];
+
+        // --- Sidebar Logic ---
+        const menuTrigger = document.getElementById('menu-trigger');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const sidebar = document.getElementById('sidebar');
+
+        function closeSidebar() {
+            document.body.classList.remove('sidebar-open');
+        }
+
+        menuTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.body.classList.toggle('sidebar-open');
+        });
+
+        sidebarOverlay.addEventListener('click', closeSidebar);
+        sidebar.addEventListener('click', (e) => e.stopPropagation());
+
+        document.querySelectorAll('.nav-item, .logout-btn').forEach((btn) => {
+            btn.addEventListener('click', closeSidebar);
+        });
+
+        // --- Theme Toggle ---
+        const themeBtn = document.getElementById('theme-btn');
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('light-mode');
+            themeBtn.querySelector('i').classList.toggle('fa-sun');
+            themeBtn.querySelector('i').classList.toggle('fa-moon');
+        });
+
+        // --- Voice Mode (Full Screen) ---
+        const voiceTrigger = document.getElementById('voice-mode-trigger');
+        const voiceOverlay = document.getElementById('voice-overlay');
+        voiceTrigger.addEventListener('click', () => voiceOverlay.classList.add('active'));
+        voiceOverlay.addEventListener('click', () => voiceOverlay.classList.remove('active'));
+
+        // --- Input Logic: Mic vs Send ---
+        function updateActionButton() {
+            const hasText = input.value.trim().length > 0;
+            const hasFiles = attachedFiles.length > 0;
+            const icon = actionBtn.querySelector('i');
+
+            if (hasText || hasFiles) {
+                icon.className = 'fas fa-arrow-up';
+                isRecording = false;
+                actionBtn.classList.remove('recording');
+            } else {
+                icon.className = 'fas fa-microphone';
+            }
+        }
+
+        input.addEventListener('input', () => {
+            input.style.height = 'auto';
+            input.style.height = input.scrollHeight + 'px';
+            updateActionButton();
+        });
+
+        // --- Action Button Logic ---
+        actionBtn.addEventListener('click', () => {
+            const icon = actionBtn.querySelector('i');
+
+            if (icon.classList.contains('fa-arrow-up')) {
+                sendMessage();
+            } else if (!isRecording) {
+                isRecording = true;
+                actionBtn.classList.add('recording');
+                input.placeholder = 'Listening...';
+            } else {
+                isRecording = false;
+                actionBtn.classList.remove('recording');
+                input.placeholder = 'Message...';
+                input.value = 'This is a simulated transcription of what I just said.';
+                updateActionButton();
+                input.focus();
+            }
+        });
+
+        // --- Attachment Menu ---
+        plusBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            attachMenu.classList.toggle('open');
+            plusBtn.querySelector('i').classList.toggle('fa-times');
+            plusBtn.querySelector('i').classList.toggle('fa-plus');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!attachMenu.contains(e.target) && !plusBtn.contains(e.target)) {
+                attachMenu.classList.remove('open');
+                plusBtn.querySelector('i').className = 'fas fa-plus';
+            }
+        });
+
+        // --- File Upload Logic ---
+        window.triggerUpload = function(type) {
+            attachMenu.classList.remove('open');
+            plusBtn.querySelector('i').className = 'fas fa-plus';
+
+            if (type === 'image') imgInput.click();
+            else fileInput.click();
+        };
+
+        function handleFileSelect(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const attachment = {
+                    type: type,
+                    name: file.name,
+                    src: e.target.result
+                };
+                attachedFiles.push(attachment);
+                renderPreviews();
+                updateActionButton();
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        imgInput.addEventListener('change', (e) => handleFileSelect(e, 'image'));
+        fileInput.addEventListener('change', (e) => handleFileSelect(e, 'file'));
+
+        function renderPreviews() {
+            previewArea.innerHTML = '';
+            if (attachedFiles.length > 0) {
+                previewArea.classList.add('active');
+                attachedFiles.forEach((file, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+
+                    if (file.type === 'image') {
+                        div.innerHTML = `<img src="${file.src}"> <span>Image</span>`;
+                    } else {
+                        div.innerHTML = `<i class="fas fa-file-alt" style="color:var(--text-sub)"></i> <span>${file.name.substring(0, 10)}...</span>`;
+                    }
+
+                    const removeBtn = document.createElement('div');
+                    removeBtn.className = 'remove-preview';
+                    removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    removeBtn.onclick = () => {
+                        attachedFiles.splice(index, 1);
+                        renderPreviews();
+                        updateActionButton();
+                    };
+
+                    div.appendChild(removeBtn);
+                    previewArea.appendChild(div);
+                });
+            } else {
+                previewArea.classList.remove('active');
+            }
+        }
+
+        // --- Message Sending ---
+        function sendMessage() {
+            const text = input.value.trim();
+            if (!text && attachedFiles.length === 0) return;
+
+            document.getElementById('hero').classList.add('hidden');
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message user';
+
+            let contentHtml = '';
+
+            attachedFiles.forEach(file => {
+                if (file.type === 'image') {
+                    contentHtml += `<img src="${file.src}">`;
+                } else {
+                    contentHtml += `<div class="file-attachment"><i class="fas fa-file"></i> ${file.name}</div>`;
+                }
+            });
+
+            if (text) contentHtml += `<div>${text}</div>`;
+
+            msgDiv.innerHTML = contentHtml;
+            chatFeed.appendChild(msgDiv);
+
+            input.value = '';
+            input.style.height = 'auto';
+            attachedFiles = [];
+            renderPreviews();
+            updateActionButton();
+            chatFeed.scrollTo(0, chatFeed.scrollHeight);
+
+            setTimeout(() => {
+                const aiDiv = document.createElement('div');
+                aiDiv.className = 'message ai';
+                aiDiv.innerHTML = `<i class="fas fa-cube" style="margin-right:5px; color:var(--accent);"></i> Received. Analyzing content...`;
+                chatFeed.appendChild(aiDiv);
+                chatFeed.scrollTo(0, chatFeed.scrollHeight);
+            }, 600);
+        }
+    </script>
+</body>
+</html>
