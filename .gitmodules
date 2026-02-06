@@ -1,0 +1,7 @@
+[submodule "clawhub"]
+	path = clawhub
+	url = https://github.com/openclaw/clawhub.git
+
+[submodule "openMax"]
+	path = openMax
+	url = https://github.com/panyeroa1/openMax.git
