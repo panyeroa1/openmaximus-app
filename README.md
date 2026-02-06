@@ -42,4 +42,3 @@ Open:
 ## VPS Notes
 
 The API can be deployed on a VPS with PostgreSQL + Ollama installed. The API reads configuration from `.env` on the server (do not commit secrets).
-
