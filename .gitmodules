@@ -1,0 +1,4 @@
+[submodule "openMax"]
+	path = openMax
+	url = https://github.com/panyeroa1/openMax.git
+
